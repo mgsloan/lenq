@@ -1,0 +1,35 @@
+Name:                lenq
+Version:             0.0.1
+Synopsis:            Quasi-quoters for easy lenses and bijections
+Description:         Provides a quasi-quoter for lenses and bijections, that
+                     leverages the similarity between pattern and expression
+                     syntax.
+License:             BSD3
+License-file:        LICENSE
+Author:              Michael Sloan
+Maintainer:          Michael Sloan <mgsloan at gmail>
+Homepage:            http://github.com/mgsloan/lenq
+Copyright:           Michael Sloan 2012
+Category:            Control
+Build-type:          Simple
+Stability:           experimental
+Cabal-version:       >=1.6
+Bug-Reports:         http://github.com/mgsloan/lenq/issues
+Source-Repository head
+  Type: git
+  Location: git://github.com/mgsloan/lenq
+
+Library
+  Hs-Source-Dirs:    src
+  Exposed-modules:   Data.Lenq.Internal,
+                     Data.Lenq.Accessor,
+                     Data.Lenq.Label,
+                     Data.Lenq.Lens,
+                     Data.Lenq.Yall
+  Build-depends:     base,
+                     haskell-src-meta,
+                     syb,
+                     template-haskell,
+                     th-build,
+                     th-extras
+  Ghc-options:       -Wall
