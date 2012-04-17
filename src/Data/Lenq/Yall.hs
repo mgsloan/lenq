@@ -7,11 +7,14 @@
 -- Stability   :  experimental
 -- Portability :  GHC only
 --
--- This is a convenience module, providing data-lens utilities.
+-- This is a convenience module providing "Yet Another Lens Library"
+-- quasi-quoters.
 --
--- The exported quasi-quoters allow for convenient construction of data-lens
+-- The exported quasi-quoters allow for convenient construction of 
 -- lenses and bijections.  These are expressed by writing a getter, using a
 -- restricted subset of Haskell, such that deriving a setter is possible.
+--
+-- See "Data.Lenq.Internal" for documentation.
 --
 -----------------------------------------------------------------------------
 module Data.Lenq.Yall ( bijq, lenq ) where
@@ -22,5 +25,5 @@ import Language.Haskell.TH.Quote ( QuasiQuoter )
 --TODO: partiality
 
 lenq, bijq :: QuasiQuoter
-lenq = lenqConf $ mkLenqConf "lens" "get" "set"
-bijq = bijqConf $ mkBijqConf "iso" "$-" "-$"
+lenq = lenqQuoter $ mkLenqConf "lens" "get" "set"
+bijq = bijqQuoter $ mkBijqConf "iso" "$-" "-$"

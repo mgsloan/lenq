@@ -13,15 +13,15 @@
 -- restricted subset of Haskell, such that deriving a setter is possible.
 --
 -----------------------------------------------------------------------------
-module Data.Lenq.Internal
+module Data.Lenq.Internal (
 -- * Configurable Bijection QuasiQuoter
-  ( BijqConf(..), bijqConf, mkBijqConf, bijqExp
+    BijqConf(..), bijqQuoter, mkBijqConf, bijqExp
 
 -- * Configurable Lens QuasiQuoter
-  , LenqConf(..), lenqConf, mkLenqConf, lenqExp
+  , LenqConf(..), lenqQuoter, mkLenqConf, lenqExp
 
--- * Utilities
-  , eitherError, patToExp, expToPat, isoBwFromLens
+-- * Miscellaneous Utilities
+  , isoBwFromLens, patToExp, expToPat
   ) where
 
 import Control.Applicative         ( (<$>) )
@@ -41,42 +41,65 @@ import Language.Haskell.TH.Quote   ( QuasiQuoter(..) )
 --TODO: makeLens :: Name -> Q [Dec]
 --TODO: makePatLenses :: QuasiQuoter using pat syntx
 
+-- | Stores the expressions that should be used for the bijection constructor,
+--   forward mapping, and backwards mapping.
+--
+--   When turned into Haskell, these should have the types
+--   @ ((a -> b) -> (b -> a) -> BijType a b) @,
+--   @ (BijType a b -> a -> b) @, and
+--   @ (BijType a b -> b -> a) @ respectively.
 data BijqConf = BijqConf { bijqConstr, bijFw, bijBw :: ExpQ }
+
+-- | Stores the expressions that should be used for the lens constructor,
+--   getter, and setter.
+--
+--   When turned into Haskell, these should have the types
+--   @ ((a -> b) -> (b -> a -> a) -> LensType a b) @,
+--   @ (LensType a b -> a -> b) @, and
+--   @ (LensType a b -> b -> a -> a) @ respectively.
 data LenqConf = LenqConf { lensConstr, lensGet, lensSet :: ExpQ }
 
+-- | Convenience function to build a bijection quasi-quoter configuration from
+--   stuff that's convertible to expressions.  See "Language.Haskell.TH.Build".
 mkBijqConf :: (Convertible a ExpQ, Convertible b ExpQ, Convertible c ExpQ)
            => a -> b -> c -> BijqConf
 mkBijqConf c f b = BijqConf (convert c) (convert f) (convert b)
 
+-- | Convenience function to build a bijection quasi-quoter configuration from
+--   stuff that's convertible to expressions.  See "Language.Haskell.TH.Build".
 mkLenqConf :: (Convertible a ExpQ, Convertible b ExpQ, Convertible c ExpQ)
            => a -> b -> c -> LenqConf
 mkLenqConf c g s = LenqConf (convert c) (convert g) (convert s)
 
-eitherError :: (a -> b) -> (Either String a) -> b
-eitherError _ (Left  m) = error $ "Lenq parse error: " ++ m
-eitherError f (Right v) = f v
+-- | Throws the @Left@ as an error, otherwise yields the @Right@ value.
+fromError :: (Either String a) -> a
+fromError = either error id
 
-bijqConf :: BijqConf -> QuasiQuoter
-bijqConf conf = QuasiQuoter
-  (eitherError (         bijqExp conf) . parseExp)
+-- | Creates a bijection quasi-quoter from a configuration.
+bijqQuoter :: BijqConf -> QuasiQuoter
+bijqQuoter conf = QuasiQuoter
+  (                    bijqExp conf  . fromError . parseExp)
   undefined
   undefined
-  (eitherError (doDecs $ bijqExp conf) . parseDecs)
+  ((processAsLambdas $ bijqExp conf) . fromError . parseDecs)
                
-lenqConf :: LenqConf -> QuasiQuoter
-lenqConf conf = QuasiQuoter
-  (eitherError (         lenqExp conf) . parseExp)
+-- | Creates a lens quasi-quoter from a configuration.
+lenqQuoter :: LenqConf -> QuasiQuoter
+lenqQuoter conf = QuasiQuoter
+  (                    lenqExp conf  . fromError . parseExp)
   undefined
   undefined
-  (eitherError (doDecs $ lenqExp conf) . parseDecs)
+  ((processAsLambdas $ lenqExp conf) . fromError . parseDecs)
 
--- Used for making lens setter into a backwards map
--- TODO: this is sorta worrisome..
+-- | Used for making lens setter into a backwards map.  This is used for
+--   data-accessor and data-lens bijections.  It is somewhat worrisome, as
+--   @undefined@ is passed as the 
 isoBwFromLens :: String -> ExpQ
 isoBwFromLens n = sectionR (varE $ mkName n) (varE $ mkName "undefined")
 
-doDecs :: (Exp -> ExpQ) -> [Dec] -> DecsQ
-doDecs func = sequence . map doDec
+-- | Given a function 
+processAsLambdas :: (Exp -> ExpQ) -> [Dec] -> DecsQ
+processAsLambdas func = sequence . map doDec
  where
   doDec (FunD n cs) = funD' n $ map doClause cs
   doDec d           = return d
@@ -90,6 +113,8 @@ doDecs func = sequence . map doDec
 
 -- TODO: check bij well-formedness.
 
+-- | Given a configuration and lambda expression, yields the corresponding
+--   bijection (if possible - must be well-formed - TODO check more properties).
 bijqExp :: BijqConf -> Exp -> ExpQ
 bijqExp conf (ParensE e) = bijqExp conf e
 bijqExp conf (LamE ps e)
@@ -110,6 +135,8 @@ bijqExp _ _ = error "Bijq expressions must be lambdas."
 
 -- TODO: check lens well-formedness / partiality?
 
+-- | Given a configuration and lambda expression, yields the corresponding lens
+--   (if possible - must be well-formed - TODO check more properties).
 lenqExp :: LenqConf -> Exp -> ExpQ
 lenqExp conf (ParensE e) = lenqExp conf e
 lenqExp conf (LamE ps e) = lamE (map return $ init ps) expr
@@ -145,10 +172,7 @@ lenqExp conf (LamE ps e) = lamE (map return $ init ps) expr
 lenqExp _ _ = error "Lenq expressions must be lambdas."
 
 
-secondM :: Monad m => (b -> m c) -> (a, b) -> m (a, c)
-secondM f (x, y) = liftM (\y' -> (x , y')) $ f y
-
--- | Converts pattern to an expression.
+-- | Converts a pattern to an expression.
 patToExp :: Pat -> Q Exp
 patToExp (LitP l) = litE l
 patToExp (VarP n) = varE n
@@ -159,6 +183,8 @@ patToExp (ListP       ps) =       listE $ map patToExp ps
 
 patToExp (ConP n ps) =   appsE $ conE n : map patToExp ps
 patToExp (RecP n fs) = recConE n $ map ( secondM patToExp ) fs
+ where
+  secondM f (x, y) = liftM (\y' -> (x , y')) $ f y
 
 patToExp (InfixP  l n r) =  infixE (Just $ patToExp l) (varE n) (Just $ patToExp r)
 patToExp (UInfixP l n r) = uInfixE (       patToExp l) (varE n) (       patToExp r)
