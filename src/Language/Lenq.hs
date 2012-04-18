@@ -26,7 +26,7 @@ module Language.Lenq (
 
 import Control.Applicative         ( (<$>) )
 import Control.Monad               ( liftM )
-import Data.List  			           ( find, isPrefixOf )
+import Data.List                   ( find, isPrefixOf )
 import Data.Maybe                  ( fromJust )
 import Data.Generics.Aliases       ( extT, extM )
 import Data.Generics.Schemes       ( everywhere, everywhereM )
@@ -40,6 +40,8 @@ import Language.Haskell.TH.Quote   ( QuasiQuoter(..) )
 --TODO: makeLenses :: [Name] -> Q [Dec]
 --TODO: makeLens :: Name -> Q [Dec]
 --TODO: makePatLenses :: QuasiQuoter using pat syntx
+
+--TODO: partiality
 
 -- | Stores the expressions that should be used for the bijection constructor,
 --   forward mapping, and backwards mapping.
@@ -141,29 +143,31 @@ lenqExp :: LenqConf -> Exp -> ExpQ
 lenqExp conf (ParensE e) = lenqExp conf e
 lenqExp conf (LamE ps e) = lamE (map return $ init ps) expr
  where
-  -- Deconstruction pattern
+-- Deconstruction pattern
   decon = last ps
 
-  -- Resulting expression for lens construction
   expr = do
-  -- Replaces wildcards with variables, to preserve non-overwritten variables
+-- Replaces wildcards with variables, to preserve non-overwritten variables
     recon    <- everywhereM (return `extM` replaceWild) decon
-  -- Has wildcards for all overwritten variables
+
+-- Has wildcards for all overwritten variables
     let reconPat = everywhere (id `extT` wildWritten) recon
+
+-- Resulting expression for lens construction
     appsE' [ lensConstr conf
            , return $ LamE [decon] e
            , lamE' [expToPat e, return reconPat] (patToExp recon)
            ]
 
-  -- Name prefix of the non-changing variables in the structure
+-- Name prefix of the non-changing variables in the structure
   varName = fromJust . find ((`notElem` namesBoundInPat decon) . mkName)
           $ iterate ('\'':) "v"
 
-  -- Replace wildcard with new variable.
+-- Replace wildcard with new variable.
   replaceWild WildP = VarP <$> newName varName
   replaceWild p     = return p
 
-  -- Replace variable that are overwritten with wildcards
+-- Replace variables that are set by wilds.
   wildWritten v@(VarP n)
     | not (varName `isPrefixOf` show n) = WildP
     | otherwise                         = v

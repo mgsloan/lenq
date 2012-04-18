@@ -21,11 +21,11 @@ Source-Repository head
 
 Library
   Hs-Source-Dirs:    src
-  Exposed-modules:   Language.Lenq,
-                     Data.Accessor.Lenq,
+  Exposed-modules:   Data.Accessor.Lenq,
                      Data.Label.Lenq,
                      Data.Lens.Lenq,
                      Data.Yall.Lenq
+                     Language.Lenq
   Build-depends:     base,
                      haskell-src-meta,
                      syb,
