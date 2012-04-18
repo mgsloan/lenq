@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Lenq.Accessor
+-- Module      :  Data.Accessor.Lenq
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
@@ -14,12 +14,12 @@
 -- getter, using a restricted subset of Haskell, such that deriving a setter
 -- is possible.
 --
--- See "Data.Lenq.Internal" for documentation.
+-- See "Language.Lenq" for documentation.
 --
 -----------------------------------------------------------------------------
-module Data.Lenq.Accessor ( bijq, lenq ) where
+module Data.Accessor.Lenq ( bijq, lenq ) where
 
-import Data.Lenq.Internal
+import Language.Lenq
 import Language.Haskell.TH.Quote ( QuasiQuoter )
 
 lenq, bijq :: QuasiQuoter

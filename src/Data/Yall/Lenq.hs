@@ -1,28 +1,29 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Lenq.Lens
+-- Module      :  Data.Yall.Lenq
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
 -- Stability   :  experimental
 -- Portability :  GHC only
 --
--- This is a convenience module providing data-lens quasi-quoters.
+-- This is a convenience module providing "Yet Another Lens Library"
+-- quasi-quoters.
 --
--- The exported quasi-quoters allow for convenient construction of data-lens
+-- The exported quasi-quoters allow for convenient construction of 
 -- lenses and bijections.  These are expressed by writing a getter, using a
 -- restricted subset of Haskell, such that deriving a setter is possible.
 --
--- See "Data.Lenq.Internal" for documentation.
+-- See "Language.Lenq" for documentation.
 --
 -----------------------------------------------------------------------------
-module Data.Lenq.Lens ( bijq, lenq ) where
+module Data.Yall.Lenq ( bijq, lenq ) where
 
-import Data.Lenq.Internal
+import Language.Lenq
 import Language.Haskell.TH.Quote ( QuasiQuoter )
 
-lenq, bijq :: QuasiQuoter
-lenq = lenqQuoter $ mkLenqConf "lens" "getL" "setL"
+--TODO: partiality
 
---TODO: this is sorta worrisome..
-bijq = bijqQuoter $ mkBijqConf "iso" "getL" $ isoBwFromLens "setL"
+lenq, bijq :: QuasiQuoter
+lenq = lenqQuoter $ mkLenqConf "lens" "get" "set"
+bijq = bijqQuoter $ mkBijqConf "iso" "$-" "-$"

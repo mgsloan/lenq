@@ -1,29 +1,26 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Lenq.Yall
+-- Module      :  Data.Label.Lenq
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
 -- Stability   :  experimental
 -- Portability :  GHC only
 --
--- This is a convenience module providing "Yet Another Lens Library"
--- quasi-quoters.
+-- This is a convenience module providing fc-labels quasi-quoters.
 --
--- The exported quasi-quoters allow for convenient construction of 
+-- The exported quasi-quoters allow for convenient construction of fc-labels
 -- lenses and bijections.  These are expressed by writing a getter, using a
 -- restricted subset of Haskell, such that deriving a setter is possible.
 --
--- See "Data.Lenq.Internal" for documentation.
+-- See "Language.Lenq" for documentation.
 --
 -----------------------------------------------------------------------------
-module Data.Lenq.Yall ( bijq, lenq ) where
+module Data.Label.Lenq ( bijq, lenq ) where
 
-import Data.Lenq.Internal
+import Language.Lenq
 import Language.Haskell.TH.Quote ( QuasiQuoter )
-
---TODO: partiality
 
 lenq, bijq :: QuasiQuoter
 lenq = lenqQuoter $ mkLenqConf "lens" "get" "set"
-bijq = bijqQuoter $ mkBijqConf "iso" "$-" "-$"
+bijq = bijqQuoter $ mkBijqConf "Bij" "fw" "bw"

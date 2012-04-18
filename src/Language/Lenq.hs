@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Lenq.Internal
+-- Module      :  Language.Lenq
 -- Copyright   :  (c) 2012 Michael Sloan 
 -- License     :  BSD-style (see the LICENSE file)
 -- Maintainer  :  Michael Sloan <mgsloan@gmail.com>
@@ -13,7 +13,7 @@
 -- restricted subset of Haskell, such that deriving a setter is possible.
 --
 -----------------------------------------------------------------------------
-module Data.Lenq.Internal (
+module Language.Lenq (
 -- * Configurable Bijection QuasiQuoter
     BijqConf(..), bijqQuoter, mkBijqConf, bijqExp
 
