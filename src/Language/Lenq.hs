@@ -37,6 +37,9 @@ import Language.Haskell.TH.Build
 import Language.Haskell.TH.Extras  ( namesBoundInPat )
 import Language.Haskell.TH.Quote   ( QuasiQuoter(..) )
 
+--TODO: Think about deconstructor strictness - if every field of a subpattern
+-- is matched, should the whole subpattern be Wild?
+
 --TODO: makeLenses :: [Name] -> Q [Dec]
 --TODO: makeLens :: Name -> Q [Dec]
 --TODO: makePatLenses :: QuasiQuoter using pat syntx
@@ -94,12 +97,15 @@ lenqQuoter conf = QuasiQuoter
   ((processAsLambdas $ lenqExp conf) . fromError . parseDecs)
 
 -- | Used for making lens setter into a backwards map.  This is used for
---   data-accessor and data-lens bijections.  It is somewhat worrisome, as
---   @undefined@ is passed as the 
+--   data-accessor and data-lens bijections.  This probably shouldn't exist,
+--   as as @undefined@ is passed as the value for the "old state" of the
+--   structure.
 isoBwFromLens :: String -> ExpQ
 isoBwFromLens n = sectionR (varE $ mkName n) (varE $ mkName "undefined")
 
--- | Given a function 
+-- | Given a function that takes a lambda and yields an expression, applies
+--   this function to every clause of every function declaration, by
+--   translating the clause to a lambda.
 processAsLambdas :: (Exp -> ExpQ) -> [Dec] -> DecsQ
 processAsLambdas func = sequence . map doDec
  where
@@ -203,7 +209,7 @@ patToExp (ViewP _ _) = error "ViewP has no expression equivalent."
 patToExp (WildP    ) = error "WildP has no expression equivalent."
 
 -- | Converts an expression to a pattern.
-expToPat :: Exp -> Q Pat
+expToPat :: Exp -> PatQ
 expToPat (LitE l) = litP l
 expToPat (VarE n) = varP n
 
@@ -228,3 +234,32 @@ expToPat e@(AppE _ _)
 expToPat e                   = error $ show e ++ " has no pattern equivalent."
 
 -- TODO expToPat   (RecE        n fs) = recConP' n $ map (second expToPat) fs
+
+
+{-
+conToPat :: [Either Type (Name, Type)] -> Exp -> PatQ
+conToPat f (NormalC   n xs) = conP n . f . Left  $ map snd xs
+conToPat f (InfixC tl n tr) = recP n . f . Left  $ map snd [tl, tr]
+conToPat f (RecC      n fs) = recP n . f . Right $ map (\(fn, _, t) -> Right (fn, t)) fs
+conToPat f (ForallC  _ _ c) = conToPat f c
+
+
+-- New, Bijection derivation - very similar to Newtype.TH
+
+tupleBijs :: [Name] -> DecsQ
+tupleBijs = mapM tupleBij
+
+-- | Given a list of constructors
+tupleBij :: Name -> DecQ
+tupleBij n = mkBij <$> reify n
+ where
+  mkBij (TyConI (NewtypeD _ _ _  d  _)) = mkBijFor d
+  mkBij (TyConI (DataD    _ _ _ [d] _)) = mkBijFor d
+  mkBij x = error $ show x
+         ++ " is not a Newtype or single-field single-constructor datatype."
+
+  mkBijFor con = lenqExp $ LamE pat expr
+   where
+    pat = conToPat con
+    expr = TupE . map VarE $ namesBoundInPat pat
+-}

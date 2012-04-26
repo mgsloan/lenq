@@ -10,7 +10,7 @@ Author:              Michael Sloan
 Maintainer:          Michael Sloan <mgsloan at gmail>
 Homepage:            http://github.com/mgsloan/lenq
 Copyright:           Michael Sloan 2012
-Category:            Control
+Category:            Template Haskell
 Build-type:          Simple
 Stability:           experimental
 Cabal-version:       >=1.6
